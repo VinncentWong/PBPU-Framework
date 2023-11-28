@@ -48,7 +48,6 @@ public class JsonDatabaseImplementation<T> implements CoreDatabase<T> {
                 }
             });
 
-            System.out.println("sesudah read value");
             if (dataList.isEmpty()) {
                 var idExist = false;
                 var fields = data.getClass().getDeclaredFields();
@@ -67,7 +66,6 @@ public class JsonDatabaseImplementation<T> implements CoreDatabase<T> {
                     }
                     field.setAccessible(false);
                 }
-                System.out.println("sesudah isi field");
                 if (!idExist) {
                     throw new Exception("@Id tidak ditemukan");
                 }
@@ -75,7 +73,6 @@ public class JsonDatabaseImplementation<T> implements CoreDatabase<T> {
                 var idExist = false;
                 var fields = data.getClass().getDeclaredFields();
                 var latestData = dataList.get(dataList.size() - 1);
-                System.out.println("latestData.getClass() = " + latestData.getClass());
                 for (var field : fields) {
                     try {
                         field.setAccessible(true);
