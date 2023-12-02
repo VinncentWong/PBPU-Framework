@@ -1,15 +1,25 @@
 package pbpu.database;
 
+import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.dataformat.csv.CsvMapper;
+
+import lombok.SneakyThrows;
 
 public class CsvDatabaseImplementation<T> implements CoreDatabase<T> {
 
     // by default, the file name that will be used as database
     // will be based on entity name
     private String entityName;
+    private CsvMapper objectMapper;
 
+    @SneakyThrows
     public CsvDatabaseImplementation(String entityName){
         this.entityName = entityName.toLowerCase();
+        this.objectMapper = new CsvMapper();
     }
 
     @Override
@@ -24,16 +34,37 @@ public class CsvDatabaseImplementation<T> implements CoreDatabase<T> {
         throw new UnsupportedOperationException("Unimplemented method 'get'");
     }
 
+    @SneakyThrows
     @Override
     public List<T> getList() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'getList'");
+        var directory = new File("data");
+        if (!directory.exists()) {
+            directory.createNewFile();
+        }
+
+        var dataFile = new File(directory, entityName + ".json");
+        if (!dataFile.exists()) {
+            dataFile.createNewFile();
+            this.objectMapper.writeValue(dataFile, entityName);
+        }
+        return this.objectMapper.readValue(dataFile, new TypeReference<List<T>>(){});
     }
 
+    @SneakyThrows
     @Override
     public void delete(int id) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'delete'");
+        var directory = new File("data");
+        if (!directory.exists()) {
+            directory.createNewFile();  
+        }
+
+        var dataFile = new File(directory, entityName + ".csv"); 
+        if (!dataFile.exists()) {
+            System.out.printf("Tidak ada file %s. Silahkan masukkan data terlebih dahulu\n", this.entityName + ".json");
+            return;
+        }
+
+        var dataList = this.objectMapper.readValue(dataFile, new TypeReference<List<T>>() {});
     }
 
     @Override
