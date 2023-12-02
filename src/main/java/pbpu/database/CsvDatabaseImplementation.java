@@ -56,7 +56,7 @@ public class CsvDatabaseImplementation<T> implements CoreDatabase<T> {
 
             mapper.writer(csvSchema).writeValue(dataFile, dataList);
 
-            System.out.printf("Sukses menambahkan data %s: %s\n", this.entityName);
+            System.out.printf("Sukses menambahkan data %s \n", this.entityName);
         } catch (Exception e) {
             System.out.println("Error occurred with message " + e.getMessage());
             e.printStackTrace();
