@@ -12,6 +12,7 @@ import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 
 import lombok.SneakyThrows;
 import pbpu.annotation.Id;
+import pbpu.entity.Buku;
 
 public class CsvDatabaseImplementation<T> implements CoreDatabase<T> {
 
@@ -23,7 +24,7 @@ public class CsvDatabaseImplementation<T> implements CoreDatabase<T> {
     private CsvMapper mapper;
 
     @SneakyThrows
-    public CsvDatabaseImplementation(String entityName){
+    public CsvDatabaseImplementation(String entityName) {
         this.entityName = entityName.toLowerCase();
         this.mapper = new CsvMapper();
         this.directory = new File("data");
@@ -42,7 +43,8 @@ public class CsvDatabaseImplementation<T> implements CoreDatabase<T> {
                 dataFile.createNewFile();
                 dataList = new ArrayList<>();
             } else {
-                MappingIterator<T> dataMappingIterator = mapper.readerFor(data.getClass()).with(csvSchema).readValues(dataFile);
+                MappingIterator<T> dataMappingIterator = mapper.readerFor(data.getClass()).with(csvSchema)
+                        .readValues(dataFile);
                 dataList = dataMappingIterator.readAll();
             }
 
@@ -79,14 +81,15 @@ public class CsvDatabaseImplementation<T> implements CoreDatabase<T> {
         T entity = null;
         var dataList = getList();
         for (var data : dataList) {
+            System.err.println(data.getClass());
             var dataId = getId(data);
             if (dataId.getClass() == Integer.class) {
                 var intId = (Integer) dataId;
                 if (intId == id) {
                     entity = data;
                 }
-            } else if (dataId.getClass() == Double.class) {
-                var doubleId = (Double) dataId;
+            } else if (dataId.getClass() == Long.class) {
+                var doubleId = (Long) dataId;
                 if (doubleId == id) {
                     entity = data;
                 }
@@ -103,59 +106,70 @@ public class CsvDatabaseImplementation<T> implements CoreDatabase<T> {
     @Override
     @SneakyThrows
     public List<T> getList() {
-        if(!directory.exists()){
+        if (!directory.exists()) {
             directory.mkdir();
         }
 
-        if(!dataFile.exists()){
+        if (!dataFile.exists()) {
             dataFile.createNewFile();
         }
-        CsvSchema csvSchema = mapper.schemaFor((Class<T>) Object.class).withHeader();
+
+        CsvSchema csvSchema = mapper.schemaFor(Buku.class).withHeader();
 
         // Read existing CSV file into List of T objects
-        MappingIterator<T> dataMappingIterator = mapper.readerFor((Class<T>) Object.class).with(csvSchema).readValues(dataFile);
-        return dataMappingIterator.readAll();
+        MappingIterator<T> dataMappingIterator = mapper.readerFor(Buku.class).with(csvSchema).readValues(dataFile);
+        List<T> result = dataMappingIterator.readAll();
+        return result;
     }
 
     @SneakyThrows
     @Override
     public void delete(int id) {
-        if(!directory.exists()){
+        if (!directory.exists()) {
             directory.mkdir();
         }
-        if(!dataFile.exists()){
+        if (!dataFile.exists()) {
             System.out.printf("Tidak ada file %s. Silahkan masukkan data terlebih dahulu\n", this.entityName + ".csv");
             return;
         }
-
+        CsvSchema csvSchema;
         var dataList = getList();
+
+        if (dataList.isEmpty()) {
+            System.out.println("Tidak ada data yang bisa dihapus");
+            return;
+        }
+        csvSchema = mapper.schemaFor(dataList.get(0).getClass()).withHeader();
+
         boolean isSuccess = false;
-        for(int i = 0; i<dataList.size(); i++){
+        for (int i = 0; i < dataList.size(); i++) {
             var data = dataList.get(i);
             var dataId = getId(data);
-            if(dataId.getClass() == Integer.class){
+            if (dataId.getClass() == Integer.class) {
                 var intId = (Integer) dataId;
-                if(intId == id){
+                if (intId == id) {
                     dataList.remove(i);
                     isSuccess = true;
                 }
-            } else if(dataId.getClass() == Double.class){
-                var doubleId = (Double) dataId;
-                if(doubleId == id){
+            } else if (dataId.getClass() == Long.class) {
+                var doubleId = (Long) dataId;
+                if (doubleId == id) {
                     dataList.remove(i);
                     isSuccess = true;
                 }
-            } else if(dataId.getClass() == String.class){
+            } else if (dataId.getClass() == String.class) {
                 var strId = (String) dataId;
-                if(strId.equalsIgnoreCase(id + "")){
+                if (strId.equalsIgnoreCase(id + "")) {
                     dataList.remove(i);
                     isSuccess = true;
                 }
             }
-            if(isSuccess)break;
+            if (isSuccess)
+                break;
         }
+        System.err.println(dataList);
 
-        this.mapper.writeValue(dataFile, dataList);
+        this.mapper.writer(csvSchema).writeValue(dataFile, dataList);
 
         if (!isSuccess) {
             System.out.printf("Tidak terdapat data dengan id %d dalam data.csv\n", id);
@@ -164,58 +178,61 @@ public class CsvDatabaseImplementation<T> implements CoreDatabase<T> {
             System.out.println("Sukses menghapus data");
         }
     }
+
     @SneakyThrows
     @Override
     public void update(int id, T data) {
-        if(!directory.exists()){
+        CsvSchema csvSchema = mapper.schemaFor(data.getClass()).withHeader();
+        if (!directory.exists()) {
             directory.mkdir();
         }
-        if(!dataFile.exists()){
+        if (!dataFile.exists()) {
             System.out.printf("Tidak ada file %s. Silahkan masukkan data terlebih dahulu\n", this.entityName + ".csv");
             return;
         }
 
         var dataList = getList();
-
+        
         T target = null;
 
-        for(int i = 0; i<dataList.size(); i++){
+        for (int i = 0; i < dataList.size(); i++) {
             var dataItem = dataList.get(i);
             var dataId = getId(dataItem);
-            if(dataId.getClass() == Integer.class){
+            if (dataId.getClass() == Integer.class) {
                 var intId = (Integer) dataId;
-                if(intId == id){
+                if (intId == id) {
                     target = dataItem;
                 }
-            } else if(dataId.getClass() == Double.class){
-                var doubleId = (Double) dataId;
-                if(doubleId == id){
+            } else if (dataId.getClass() == Long.class) {
+                var doubleId = (Long) dataId;
+                if (doubleId == id) {
                     target = dataItem;
                 }
-            } else if(dataId.getClass() == String.class){
+            } else if (dataId.getClass() == String.class) {
                 var strId = (String) dataId;
-                if(strId.equalsIgnoreCase(id + "")){
+                if (strId.equalsIgnoreCase(id + "")) {
                     target = dataItem;
                 }
             }
-            if(target != null)break;
+            if (target != null)
+                break;
         }
 
-        if(target == null){
+        if (target == null) {
             System.out.printf("Tidak terdapat data dengan id %d dalam data.csv\n", id);
             return;
         }
 
         var fields = data.getClass().getDeclaredFields();
-        for(var field : fields){
-            try{
+        for (var field : fields) {
+            try {
                 field.setAccessible(true);
                 var value = field.get(data);
-                if(value != null){
+                if (value != null) {
                     field.set(target, value);
                 }
                 field.setAccessible(false);
-            } catch(Exception e){
+            } catch (Exception e) {
                 System.out.println("Exception occurred with message " + e.getMessage());
             }
         }
@@ -224,7 +241,6 @@ public class CsvDatabaseImplementation<T> implements CoreDatabase<T> {
 
         System.out.println("Sukses mengupdate data");
     }
-    
 
     private void updateIdForNextData(T data, List<T> dataList) throws IllegalAccessException {
         var latestData = dataList.get(dataList.size() - 1);
@@ -257,7 +273,6 @@ public class CsvDatabaseImplementation<T> implements CoreDatabase<T> {
         return (value != null) ? Integer.parseInt(value.toString()) : 0;
     }
 
-
     @SneakyThrows
     private Object getId(T data) {
         var fields = data.getClass().getDeclaredFields();
@@ -269,7 +284,7 @@ public class CsvDatabaseImplementation<T> implements CoreDatabase<T> {
             }
             field.setAccessible(false);
         }
-        if(value != null){
+        if (value != null) {
             return value;
         } else {
             throw new Exception("@Id tidak ditemukan on method getId(T data)");
