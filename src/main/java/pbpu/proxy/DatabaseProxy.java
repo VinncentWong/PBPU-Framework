@@ -24,7 +24,7 @@ public class DatabaseProxy<T> implements InvocationHandler {
             return result;
         } catch(Exception ex){
             System.out.printf("Error occurred with message %s\n", ex.getMessage());
-
+            ex.printStackTrace();
             // if u need the real implementation to do rollback, 
             // add the implementation on below
             System.out.println("Doing rollback!");
