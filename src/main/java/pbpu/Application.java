@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.classgraph.ClassGraph;
 import io.github.classgraph.ScanResult;
 import lombok.SneakyThrows;
+import pbpu.annotation.CsvDatabase;
 import pbpu.annotation.Entity;
 import pbpu.annotation.Id;
 import pbpu.annotation.Inject;
@@ -104,7 +105,22 @@ public class Application {
                                 }
                             }
                             case 2 -> {
-
+                                var targetDatabase = CsvDatabase.class;
+                                var targetType = this.entities.get(choice);
+                                System.out.println("targetDatabase = " + targetDatabase + " target type " + targetType);
+                                var instance = ApplicationContext
+                                        .getInstance()
+                                        .getComponent(targetType)
+                                        .get(targetDatabase);
+                                if (instance != null) {
+                                    var operation = (Operation<Object>) instance;
+                                    var targetInstance = targetType.getDeclaredConstructor().newInstance();
+                                    var fields = targetInstance.getClass().getDeclaredFields();
+                                    this.showEntityInsertOrUpdate(input, targetInstance, fields);
+                                    operation.insert(targetInstance);
+                                } else {
+                                    System.out.println("Instance not found");
+                                }
                             }
                         }
                     }
