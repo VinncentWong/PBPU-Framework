@@ -1,9 +1,11 @@
 package pbpu.database;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.core.util.DefaultIndenter;
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.fasterxml.jackson.databind.MappingIterator;
@@ -39,6 +41,9 @@ public class CsvDatabaseImplementation<T> implements CoreDatabase<T> {
             CsvSchema csvSchema = mapper.schemaFor(data.getClass()).withHeader();
 
             List<T> dataList;
+            if (!directory.exists()) {
+                directory.mkdir();
+            }
             if (!dataFile.exists()) {
                 dataFile.createNewFile();
                 dataList = new ArrayList<>();
@@ -113,13 +118,13 @@ public class CsvDatabaseImplementation<T> implements CoreDatabase<T> {
         if (!dataFile.exists()) {
             dataFile.createNewFile();
         }
+        CsvSchema schema = CsvSchema.emptySchema().withHeader(); // assuming first row is header
+        TypeReference<List<T>> typeReference = new TypeReference<List<T>>() {};
 
-        CsvSchema csvSchema = mapper.schemaFor(Buku.class).withHeader();
 
-        // Read existing CSV file into List of T objects
-        MappingIterator<T> dataMappingIterator = mapper.readerFor(Buku.class).with(csvSchema).readValues(dataFile);
-        List<T> result = dataMappingIterator.readAll();
-        return result;
+        return mapper.readerFor(typeReference)
+                .with(schema)
+                .readValue(dataFile);
     }
 
     @SneakyThrows
