@@ -104,7 +104,7 @@ public class Application {
                                 }
                             }
                             case 2 -> {
-
+                                
                             }
                         }
                     }
@@ -254,7 +254,6 @@ public class Application {
         System.out.print("""
                 1. JSON
                 2. CSV
-                3. Text
                 """);
         this.lineUtil.printLine();
         System.out.print("Pilihan Anda: ");

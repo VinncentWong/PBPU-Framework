@@ -32,9 +32,9 @@ public class DatabaseInjector {
      * @return the instance of the proxy
      */
     @SuppressWarnings("unchecked")
-    private <T> CoreDatabase<T> createJsonProxyInstance(String clazz) {
+    private <T> CoreDatabase<T> createJsonProxyInstance(Class<?> type, String clazz) {
         System.out.println("proxy entity name = " + clazz);
-        var database = new JsonDatabaseImplementation<>(clazz);
+        var database = new JsonDatabaseImplementation<>(clazz, type);
         return (CoreDatabase<T>) Proxy.newProxyInstance(
                 database.getClass().getClassLoader(),
                 new Class[] { CoreDatabase.class },
@@ -57,7 +57,7 @@ public class DatabaseInjector {
                 new DatabaseProxy<>(database));
     }
     
-    public void injectProxy() {
+    public void injectProxy(){
         databases.forEach((c) -> {
             if (c.isAnnotationPresent(Crud.class)) {
 
@@ -86,6 +86,8 @@ public class DatabaseInjector {
                                 // again
                                 field.setAccessible(true);
 
+                                // get the generic type of the Field
+                                // for example CoreDatabase<String> means that genericType will be String
                                 var genericType = ((Class<?>)entityType);
 
                                 var name = genericType.getSimpleName();
@@ -97,7 +99,7 @@ public class DatabaseInjector {
                                     }
                                 }
 
-                                var proxy = createJsonProxyInstance(name);
+                                var proxy = createJsonProxyInstance(genericType, name);
 
                                 field.set(instance, proxy);
 

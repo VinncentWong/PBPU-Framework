@@ -4,6 +4,7 @@ import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -21,9 +22,12 @@ public class JsonDatabaseImplementation<T> implements CoreDatabase<T> {
 
     private ObjectMapper mapper;
 
-    public JsonDatabaseImplementation(String entityName) {
+    private Class<?> entityType;
+
+    public JsonDatabaseImplementation(String entityName, Class<?> entityType) {
         this.entityName = convertToSnakeCase(entityName);
         this.mapper = JacksonMapper.getInstance();
+        this.entityType = entityType;
     }
 
     @SneakyThrows
@@ -107,28 +111,49 @@ public class JsonDatabaseImplementation<T> implements CoreDatabase<T> {
     @SneakyThrows
     @Override
     public T get(int id) {
-        T entity = null;
-        var dataList = getList();
-        for (var data : dataList) {
-            var dataId = getId(data);
-            if (dataId.getClass() == Integer.class) {
-                var intId = (Integer) dataId;
-                if (intId == id) {
-                    entity = data;
-                }
-            } else if (dataId.getClass() == Double.class) {
-                var doubleId = (Double) dataId;
-                if (doubleId == id) {
-                    entity = data;
-                }
-            } else if (dataId.getClass() == String.class) {
-                var strId = (String) dataId;
-                if (strId.equalsIgnoreCase(id + "")) {
-                    entity = data;
+        try {
+            T entity = null;
+            var dataList = getList();
+            if (dataList.isEmpty()) {
+                System.out.printf("data %s.json kosong", this.entityName);
+                return null;
+            }
+            System.out.println("dataList = " + dataList);
+            for (var data : dataList) {
+                var dataId = getId(data);
+                System.out.println("dataId = " + dataId.getClass());
+                if (dataId.getClass() == Integer.class) {
+                    var intId = (Integer) dataId;
+                    if (intId == id) {
+                        entity = data;
+                    }
+                } else if (dataId.getClass() == Double.class) {
+                    var doubleId = (Double) dataId;
+                    if (doubleId == id) {
+                        entity = data;
+                    }
+                } else if (dataId.getClass() == String.class) {
+                    var strId = (String) dataId;
+                    if (strId.equalsIgnoreCase(id + "")) {
+                        entity = data;
+                    }
+                } else if (dataId.getClass() == Long.class) {
+                    var strId = (Long) dataId;
+                    if (strId == id) {
+                        entity = data;
+                    }
                 }
             }
+            return entity;
+        } catch (Exception e) {
+            System.out.println("exception occured on get(id) with message " + e.getMessage());
+            Arrays
+                    .stream(e.getStackTrace())
+                    .forEach((t) -> {
+                        System.out.println(t.getClassName() + " " + t.getMethodName() + " " + t.getLineNumber());
+                    });
+            throw e;
         }
-        return entity;
     }
 
     @SneakyThrows
@@ -146,6 +171,10 @@ public class JsonDatabaseImplementation<T> implements CoreDatabase<T> {
         }
 
         return this.mapper.readValue(dataFile, new TypeReference<List<T>>() {
+            @Override
+            public Type getType() {
+                return mapper.getTypeFactory().constructCollectionType(List.class, entityType);
+            }
         });
     }
 
@@ -163,8 +192,7 @@ public class JsonDatabaseImplementation<T> implements CoreDatabase<T> {
             return;
         }
 
-        var dataList = this.mapper.readValue(dataFile, new TypeReference<List<T>>() {
-        });
+        var dataList = this.getList();
 
         if (dataList.isEmpty()) {
             System.out.println("data.json berisi [] kosong");
@@ -192,6 +220,12 @@ public class JsonDatabaseImplementation<T> implements CoreDatabase<T> {
                     dataList.remove(i);
                     dataFound = true;
                 }
+            } else if (dataId.getClass() == Long.class) {
+                var longId = (Long) dataId;
+                if (longId == id) {
+                    dataList.remove(i);
+                    dataFound = true;
+                }
             }
         }
 
@@ -208,58 +242,87 @@ public class JsonDatabaseImplementation<T> implements CoreDatabase<T> {
     @SneakyThrows
     @Override
     public void update(int id, T data) {
-        var directory = new File("data");
-        if (!directory.exists()) {
-            directory.createNewFile();
-        }
+        try {
+            var directory = new File("data");
+            if (!directory.exists()) {
+                directory.createNewFile();
+            }
 
-        var dataFile = new File(directory, entityName + ".json");
-        if (!dataFile.exists()) {
-            System.out.printf("Tidak ada file %s. Silahkan masukkan data terlebih dahulu\n", this.entityName + ".json");
-            return;
-        }
+            var dataFile = new File(directory, entityName + ".json");
+            if (!dataFile.exists()) {
+                System.out.printf("Tidak ada file %s. Silahkan masukkan data terlebih dahulu\n",
+                        this.entityName + ".json");
+                return;
+            }
 
-        var dataList = this.getList();
+            var dataList = this.getList();
 
-        int index = -1;
-        T targetBook = null;
-        for (int i = 0; i < dataList.size(); i++) {
-            var dataId = getId(dataList.get(i));
-            if (dataId.getClass() == Integer.class) {
-                var intId = (Integer) dataId;
-                if (intId == id) {
-                    targetBook = dataList.get(i);
-                    index = i;
-                }
-            } else if (dataId.getClass() == Double.class) {
-                var doubleId = (Double) dataId;
-                if (doubleId == id) {
-                    targetBook = dataList.get(i);
-                    index = i;
-                }
-            } else if (dataId.getClass() == String.class) {
-                var strId = (String) dataId;
-                if (strId.equalsIgnoreCase(id + "")) {
-                    targetBook = dataList.get(i);
-                    index = i;
+            int index = -1;
+            T targetBook = null;
+            for (int i = 0; i < dataList.size(); i++) {
+                var dataId = getId(dataList.get(i));
+                if (dataId.getClass() == Integer.class) {
+                    var intId = (Integer) dataId;
+                    if (intId == id) {
+                        targetBook = dataList.get(i);
+                        index = i;
+                    }
+                } else if (dataId.getClass() == Double.class) {
+                    var doubleId = (Double) dataId;
+                    if (doubleId == id) {
+                        targetBook = dataList.get(i);
+                        index = i;
+                    }
+                } else if (dataId.getClass() == String.class) {
+                    var strId = (String) dataId;
+                    if (strId.equalsIgnoreCase(id + "")) {
+                        targetBook = dataList.get(i);
+                        index = i;
+                    }
+                } else if (dataId.getClass() == Long.class) {
+                    var longId = (Long) dataId;
+                    if (longId == id) {
+                        targetBook = dataList.get(i);
+                        index = i;
+                    }
                 }
             }
+
+            if (targetBook == null) {
+                System.out.println("Buku tidak ditemukan");
+                return;
+            }
+
+            var field = getFieldAnnotateWithId(data);
+
+            field.setAccessible(true);
+
+            if(field.getType() == Integer.class){
+                field.set(data, id);
+            } else if(field.getType() == String.class){
+                field.set(data, id + "");
+            } else if(field.getType() == Double.class){
+                field.set(data, Double.valueOf(id + ""));
+            } else if(field.getType() == Long.class){
+                field.set(data, Long.valueOf(id));
+            }
+
+            field.setAccessible(false);
+
+            dataList.set(index, data);
+
+            this.mapper.writeValue(dataFile, dataList);
+
+            System.out.println("Sukses mengubah data buku " + this.mapper.writeValueAsString(data));
+        } catch (Exception e) {
+            System.out.println("error occurred with message " + e.getMessage());
+            Arrays
+                .stream(e.getStackTrace())
+                .forEach((t) -> {
+                    System.out.println(t.getClassName() + " " + t.getMethodName() + " " + t.getLineNumber());
+                });
+            throw e;
         }
-
-        if (targetBook == null) {
-            System.out.println("Buku tidak ditemukan");
-            return;
-        }
-
-        var field = getFieldAnnotateWithId(data);
-
-        field.set(data, id);
-
-        dataList.set(index, data);
-
-        this.mapper.writeValue(dataFile, dataList);
-
-        System.out.println("Sukses mengubah data buku " + this.mapper.writeValueAsString(data));
     }
 
     private String convertToSnakeCase(String str) {
@@ -308,7 +371,7 @@ public class JsonDatabaseImplementation<T> implements CoreDatabase<T> {
             }
             field.setAccessible(false);
         }
-        if(value != null){
+        if (value != null) {
             return value;
         } else {
             throw new Exception("@Id tidak ditemukan on method getId(T data)");
@@ -318,12 +381,24 @@ public class JsonDatabaseImplementation<T> implements CoreDatabase<T> {
     @SneakyThrows
     private Field getFieldAnnotateWithId(T data) {
         var obj = data.getClass();
+        Field tempData = null;
         for (var field : obj.getDeclaredFields()) {
+            field.setAccessible(true);
             if (field.isAnnotationPresent(Id.class)) {
-                return field;
+                tempData = field;
             }
+            field.setAccessible(false);
         }
-        throw new Exception("@Id tidak ditemukan on method getFieldAnnotateWithId(T data)");
+        if(tempData == null){
+            throw new Exception("@Id tidak ditemukan on method getFieldAnnotateWithId(T data)");
+        } else {
+            return tempData;
+        }
+    }
+
+    @SneakyThrows
+    private Object getInstance(Class<?> clazz) {
+        return clazz.getDeclaredConstructor().newInstance();
     }
 
 }
