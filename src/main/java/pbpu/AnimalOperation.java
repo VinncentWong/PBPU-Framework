@@ -3,6 +3,7 @@ package pbpu;
 import java.util.List;
 
 import pbpu.annotation.Crud;
+import pbpu.annotation.CsvDatabase;
 import pbpu.annotation.Inject;
 import pbpu.annotation.JsonDatabase;
 import pbpu.database.CoreDatabase;
@@ -12,7 +13,7 @@ import pbpu.entity.Animal;
 @Crud(type = Animal.class)
 public class AnimalOperation implements Operation<Animal>{
 
-    @Inject(type = JsonDatabase.class)
+    @Inject(type = CsvDatabase.class)
     private CoreDatabase<Animal> database;
 
     @Override

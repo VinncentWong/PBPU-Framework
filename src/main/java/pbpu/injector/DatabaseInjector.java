@@ -48,9 +48,9 @@ public class DatabaseInjector {
      * @return the instance of the proxy
      */
     @SuppressWarnings("unchecked")
-    private <T> CoreDatabase<T> createCsvProxyInstance(String clazz) {
+    private <T> CoreDatabase<T> createCsvProxyInstance(Class<?> type,String clazz) {
         System.out.println("proxy entity name = " + clazz);
-        var database = new CsvDatabaseImplementation<>(clazz);
+        var database = new CsvDatabaseImplementation<>(clazz, type);
         return (CoreDatabase<T>) Proxy.newProxyInstance(
                 database.getClass().getClassLoader(),
                 new Class[] { CoreDatabase.class },
@@ -135,7 +135,7 @@ public class DatabaseInjector {
                                     }
                                 }
 
-                                var proxy = createCsvProxyInstance(name);
+                                var proxy = createCsvProxyInstance(genericType,name);
 
                                 field.set(instance, proxy);
 
