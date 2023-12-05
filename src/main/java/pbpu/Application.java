@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.classgraph.ClassGraph;
 import io.github.classgraph.ScanResult;
 import lombok.SneakyThrows;
+import pbpu.annotation.CsvDatabase;
 import pbpu.annotation.Entity;
 import pbpu.annotation.Id;
 import pbpu.annotation.Inject;
@@ -104,7 +105,22 @@ public class Application {
                                 }
                             }
                             case 2 -> {
-                                
+                                var targetDatabase = CsvDatabase.class;
+                                var targetType = this.entities.get(choice);
+                                System.out.println("targetDatabase = " + targetDatabase + " target type " + targetType);
+                                var instance = ApplicationContext
+                                        .getInstance()
+                                        .getComponent(targetType)
+                                        .get(targetDatabase);
+                                if (instance != null) {
+                                    var operation = (Operation<Object>) instance;
+                                    var targetInstance = targetType.getDeclaredConstructor().newInstance();
+                                    var fields = targetInstance.getClass().getDeclaredFields();
+                                    this.showEntityInsertOrUpdate(input, targetInstance, fields);
+                                    operation.insert(targetInstance);
+                                } else {
+                                    System.out.println("Instance not found");
+                                }
                             }
                         }
                     }
@@ -131,7 +147,23 @@ public class Application {
                                 }
                             }
                             case 2 -> {
+                                var instance = ApplicationContext.getInstance()
+                                        .getComponent(this.entities.get(choice))
+                                        .get(CsvDatabase.class);
 
+                                if (instance != null) {
+                                    var operation = (Operation<Object>) instance;
+                                    var searchId = getIdChoice(input);
+                                    var data = operation.get(searchId);
+                                    if (data != null) {
+                                        System.out.printf("Sukses mendapatkan data %s\n",
+                                                this.mapper.writeValueAsString(data));
+                                    } else {
+                                        System.out.printf("Data tidak ditemukan dengan id %d\n", searchId);
+                                    }
+                                } else {
+                                    System.out.println("Instance not found");
+                                }
                             }
                         }
                     }
@@ -158,7 +190,23 @@ public class Application {
                                 }
                             }
                             case 2 -> {
+                                var instance = ApplicationContext
+                                        .getInstance()
+                                        .getComponent(this.entities.get(choice))
+                                        .get(CsvDatabase.class);
 
+                                if (instance != null) {
+                                    var operation = (Operation<Object>) instance;
+                                    var data = operation.getList();
+                                    if (data != null) {
+                                        System.out.printf("Sukses mendapatkan data %s\n",
+                                                this.mapper.writeValueAsString(data));
+                                    } else if (data == null || data.size() == 0) {
+                                        System.out.println("Data tidak ditemukan, data berisi [] kosong");
+                                    }
+                                } else {
+                                    System.out.println("Instance not found");
+                                }
                             }
                         }
                     }
@@ -180,7 +228,18 @@ public class Application {
                                 }
                             }
                             case 2 -> {
+                                var instance = ApplicationContext
+                                        .getInstance()
+                                        .getComponent(this.entities.get(choice))
+                                        .get(CsvDatabase.class);
 
+                                if (instance != null) {
+                                    var operation = (Operation<Object>) instance;
+                                    var deleteId = this.getIdChoice(input);
+                                    operation.delete(deleteId);
+                                } else {
+                                    System.out.println("Instance not found");
+                                }
                             }
                         }
                     }
@@ -209,7 +268,24 @@ public class Application {
                                 }
                             }
                             case 2 -> {
+                                var searchId = this.getIdChoice(input);
 
+                                var targetDatabase = CsvDatabase.class;
+                                var targetType = this.entities.get(choice);
+                                System.out.println("targetDatabase = " + targetDatabase + " target type " + targetType);
+                                var instance = ApplicationContext
+                                        .getInstance()
+                                        .getComponent(targetType)
+                                        .get(targetDatabase);
+                                if (instance != null) {
+                                    var operation = (Operation<Object>) instance;
+                                    var targetInstance = targetType.getDeclaredConstructor().newInstance();
+                                    var fields = targetInstance.getClass().getDeclaredFields();
+                                    this.showEntityInsertOrUpdate(input, targetInstance, fields);
+                                    operation.update(searchId, targetInstance);
+                                } else {
+                                    System.out.println("Instance not found");
+                                }
                             }
                         }
                     }
